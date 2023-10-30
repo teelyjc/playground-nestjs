@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Delete, Param, Body } from "@nestjs/common";
+import { Controller, Get } from "@nestjs/common";
 import { AppService } from "@/services/AppService";
+
+import os from "os";
 
 @Controller()
 export class AppController {
@@ -7,5 +9,13 @@ export class AppController {
 
   public constructor(appService: AppService) {
     this.appService = appService;
+  }
+
+  @Get("healthcheck")
+  public async healthCheck() {
+    return {
+      success: true,
+      hostname: os.hostname()
+    }
   }
 }
