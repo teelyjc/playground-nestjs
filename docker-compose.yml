@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    volumes:
+      - ./docker/mysql:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    restart: always
+    ports:
+      - 81:80
+    environment:
+      PMA_HOST: mysql
+    depends_on:
+      - mysql
+
+  rabbitmq:
+    image: rabbitmq:management-alpine
+    tty: true
+    ports:
+      - 15672:15672 # ui
+      - 5672:5672 # port
+    environment:
+      RABBITMQ_DEFAULT_USER: root
+      RABBITMQ_DEFAULT_PASS: 123456
+
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:3.54
+    ports:
+      - 9333:9333
+      - 19333:19333
+      - 9324:9324
+    command: master -ip=seaweedfs-master -ip.bind=0.0.0.0 -metricsPort=9324
+
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:3.54
+    ports:
+      - 8080:8080
+      - 18080:18080
+      - 9325:9325
+    command: volume -mserver="seaweedfs-master:9333" -ip.bind=0.0.0.0 -port=8080 -metricsPort=9325
+    volumes:
+      - ./docker/seaweedfs-volume:/data/
+    depends_on:
+      - seaweedfs-master
+
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:3.54
+    ports:
+      - 8888:8888
+      - 18888:18888
+      - 9326:9326
+    command: filer -master="seaweedfs-master:9333" -ip.bind=0.0.0.0 -metricsPort=9326
+    tty: true
+    stdin_open: true
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-volume
